@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NormalizDB — Database Normalization Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --card: #1a1a26;
+    --border: #2a2a40;
+    --accent: #7c6af7;
+    --accent2: #f7a26a;
+    --accent3: #6af7c2;
+    --text: #e8e8f0;
+    --muted: #7878a0;
+    --danger: #f76a6a;
+    --mono: 'Space Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── BACKGROUND GRID ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(124,106,247,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,106,247,.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: relative; z-index: 10;
+    padding: 3rem 2rem 2rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  header .logo {
+    font-family: var(--mono);
+    font-size: .75rem;
+    letter-spacing: .3em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: .75rem;
+  }
+  header h1 {
+    font-size: clamp(2.2rem, 6vw, 4rem);
+    font-weight: 800;
+    letter-spacing: -.02em;
+    background: linear-gradient(135deg, #fff 0%, var(--accent) 60%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  header p {
+    margin-top: .75rem;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: .8rem;
+    letter-spacing: .05em;
+  }
+
+  /* ── TABS ── */
+  .tabs {
+    position: relative; z-index: 10;
+    display: flex;
+    justify-content: center;
+    gap: .5rem;
+    padding: 2rem 1rem 0;
+    flex-wrap: wrap;
+  }
+  .tab-btn {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: .75rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: .65rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all .2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .tab-btn::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transition: transform .2s;
+  }
+  .tab-btn:hover { color: var(--text); border-color: var(--accent); }
+  .tab-btn.active {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: rgba(124,106,247,.1);
+  }
+  .tab-btn.active::after { transform: scaleX(1); }
+  .tab-btn[data-tab="3nf"].active { color: var(--accent2); border-color: var(--accent2); background: rgba(247,162,106,.1); }
+  .tab-btn[data-tab="3nf"].active::after { background: var(--accent2); }
+  .tab-btn[data-tab="canonical"].active { color: var(--accent3); border-color: var(--accent3); background: rgba(106,247,194,.1); }
+  .tab-btn[data-tab="canonical"].active::after { background: var(--accent3); }
+
+  /* ── MAIN CONTENT ── */
+  main {
+    position: relative; z-index: 10;
+    max-width: 900px;
+    margin: 2rem auto 4rem;
+    padding: 0 1.5rem;
+  }
+  .panel { display: none; animation: fadeUp .3s ease; }
+  .panel.active { display: block; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+  }
+  .card-title {
+    font-size: .65rem;
+    font-family: var(--mono);
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1.25rem;
+    display: flex; align-items: center; gap: .5rem;
+  }
+  .card-title .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+  .card[data-theme="orange"] .card-title { color: var(--accent2); }
+  .card[data-theme="orange"] .dot { background: var(--accent2); }
+  .card[data-theme="green"] .card-title { color: var(--accent3); }
+  .card[data-theme="green"] .dot { background: var(--accent3); }
+
+  /* ── FORM ELEMENTS ── */
+  label {
+    display: block;
+    font-size: .72rem;
+    font-family: var(--mono);
+    letter-spacing: .1em;
+    color: var(--muted);
+    margin-bottom: .4rem;
+    text-transform: uppercase;
+  }
+  input[type="text"], textarea {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: .85rem;
+    padding: .75rem 1rem;
+    outline: none;
+    transition: border-color .2s;
+    resize: vertical;
+  }
+  input[type="text"]:focus, textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(124,106,247,.12);
+  }
+  .card[data-theme="orange"] input:focus,
+  .card[data-theme="orange"] textarea:focus {
+    border-color: var(--accent2);
+    box-shadow: 0 0 0 3px rgba(247,162,106,.12);
+  }
+  .card[data-theme="green"] input:focus,
+  .card[data-theme="green"] textarea:focus {
+    border-color: var(--accent3);
+    box-shadow: 0 0 0 3px rgba(106,247,194,.12);
+  }
+  .field { margin-bottom: 1.25rem; }
+  .hint {
+    font-size: .68rem;
+    font-family: var(--mono);
+    color: var(--muted);
+    margin-top: .35rem;
+  }
+  .row { display: flex; gap: 1rem; flex-wrap: wrap; }
+  .row .field { flex: 1; min-width: 200px; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    font-family: var(--mono);
+    font-size: .78rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: .75rem 2rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover { background: #9585fa; transform: translateY(-1px); }
+  .btn-orange { background: var(--accent2); color: #1a1000; }
+  .btn-orange:hover { background: #f9b682; transform: translateY(-1px); }
+  .btn-green { background: var(--accent3); color: #001a10; }
+  .btn-green:hover { background: #8dfad7; transform: translateY(-1px); }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .btn-ghost:hover { border-color: var(--muted); color: var(--text); }
+  .btn-row { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: 1.5rem; }
+
+  /* ── RESULT BOX ── */
+  .result {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+    font-family: var(--mono);
+    font-size: .8rem;
+    line-height: 1.8;
+  }
+  .result.show { display: block; animation: fadeUp .25s ease; }
+  .result h3 {
+    font-family: var(--sans);
+    font-size: .65rem;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: .5rem;
+  }
+  .result-section { margin-bottom: 1.25rem; }
+  .result-section:last-child { margin-bottom: 0; }
+  .tag {
+    display: inline-block;
+    background: rgba(124,106,247,.15);
+    color: var(--accent);
+    border: 1px solid rgba(124,106,247,.3);
+    border-radius: 3px;
+    padding: .1rem .5rem;
+    font-size: .72rem;
+    margin: .15rem;
+  }
+  .tag.orange { background: rgba(247,162,106,.15); color: var(--accent2); border-color: rgba(247,162,106,.3); }
+  .tag.green  { background: rgba(106,247,194,.15); color: var(--accent3); border-color: rgba(106,247,194,.3); }
+  .tag.red    { background: rgba(247,106,106,.15); color: var(--danger);  border-color: rgba(247,106,106,.3); }
+  .step-line { color: var(--muted); margin-bottom: .4rem; }
+  .step-line span { color: var(--text); }
+  .step-line .hl-purple { color: var(--accent); }
+  .step-line .hl-orange { color: var(--accent2); }
+  .step-line .hl-green  { color: var(--accent3); }
+  .error-box {
+    background: rgba(247,106,106,.1);
+    border: 1px solid rgba(247,106,106,.3);
+    border-radius: 4px;
+    color: var(--danger);
+    padding: .75rem 1rem;
+    font-size: .78rem;
+    margin-top: 1rem;
+    font-family: var(--mono);
+  }
+
+  /* ── INFO PILLS ── */
+  .info-bar {
+    display: flex; gap: .5rem; flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+  }
+  .pill {
+    background: rgba(255,255,255,.04);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: .3rem .9rem;
+    font-size: .68rem;
+    font-family: var(--mono);
+    color: var(--muted);
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center;
+    padding: 2rem;
+    font-family: var(--mono);
+    font-size: .68rem;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+    position: relative; z-index: 10;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">// Database Theory Toolkit</div>
+  <h1>NormalizDB</h1>
+  <p>BCNF · 3NF · Canonical Cover — Relational Schema Calculators</p>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="bcnf">◈ BCNF</button>
+  <button class="tab-btn" data-tab="3nf">◈ 3NF</button>
+  <button class="tab-btn" data-tab="canonical">◈ Canonical Cover</button>
+</div>
+
+<main>
+
+  <!-- ══════════════ BCNF PANEL ══════════════ -->
+  <div class="panel active" id="panel-bcnf">
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>BCNF Decomposition Calculator</div>
+      <div class="info-bar">
+        <span class="pill">Boyce-Codd Normal Form</span>
+        <span class="pill">Lossless join decomposition</span>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label>Relation Attributes</label>
+          <input type="text" id="bcnf-attrs" placeholder="e.g. A, B, C, D"/>
+          <div class="hint">Comma-separated attribute names</div>
+        </div>
+        <div class="field">
+          <label>Primary Key(s)</label>
+          <input type="text" id="bcnf-key" placeholder="e.g. A, B"/>
+          <div class="hint">Candidate key attributes</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Functional Dependencies</label>
+        <textarea id="bcnf-fds" rows="4" placeholder="One per line, e.g.&#10;A, B -> C&#10;C -> D&#10;D -> B"></textarea>
+        <div class="hint">Format: X -> Y  (comma-separate multiple attributes on each side)</div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="computeBCNF()">Decompose to BCNF</button>
+        <button class="btn btn-ghost" onclick="clearPanel('bcnf')">Clear</button>
+        <button class="btn btn-ghost" onclick="loadExample('bcnf')">Load Example</button>
+      </div>
+      <div id="bcnf-result" class="result"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════ 3NF PANEL ══════════════ -->
+  <div class="panel" id="panel-3nf">
+    <div class="card" data-theme="orange">
+      <div class="card-title"><span class="dot"></span>3NF Synthesis Calculator</div>
+      <div class="info-bar">
+        <span class="pill">Third Normal Form</span>
+        <span class="pill">Synthesis algorithm</span>
+        <span class="pill">Dependency preservation</span>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label>Relation Attributes</label>
+          <input type="text" id="nf3-attrs" placeholder="e.g. A, B, C, D, E"/>
+          <div class="hint">Comma-separated attribute names</div>
+        </div>
+        <div class="field">
+          <label>Primary Key(s)</label>
+          <input type="text" id="nf3-key" placeholder="e.g. A"/>
+          <div class="hint">Candidate key attributes</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Functional Dependencies</label>
+        <textarea id="nf3-fds" rows="4" placeholder="One per line, e.g.&#10;A -> B, C&#10;B -> D&#10;A, C -> E"></textarea>
+        <div class="hint">Format: X -> Y  (comma-separate multiple attributes on each side)</div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-orange" onclick="compute3NF()">Synthesize 3NF</button>
+        <button class="btn btn-ghost" onclick="clearPanel('3nf')">Clear</button>
+        <button class="btn btn-ghost" onclick="loadExample('3nf')">Load Example</button>
+      </div>
+      <div id="nf3-result" class="result"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════ CANONICAL PANEL ══════════════ -->
+  <div class="panel" id="panel-canonical">
+    <div class="card" data-theme="green">
+      <div class="card-title"><span class="dot"></span>Canonical Cover Calculator</div>
+      <div class="info-bar">
+        <span class="pill">Minimal FD set</span>
+        <span class="pill">Removes redundancies</span>
+        <span class="pill">Extraneous attributes</span>
+      </div>
+
+      <div class="field">
+        <label>Functional Dependencies</label>
+        <textarea id="cc-fds" rows="6" placeholder="One per line, e.g.&#10;A -> B, C&#10;A, B -> C&#10;C -> A&#10;B -> C"></textarea>
+        <div class="hint">Format: X -> Y  (comma-separate multiple attributes on each side)</div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-green" onclick="computeCC()">Compute Canonical Cover</button>
+        <button class="btn btn-ghost" onclick="clearPanel('canonical')">Clear</button>
+        <button class="btn btn-ghost" onclick="loadExample('canonical')">Load Example</button>
+      </div>
+      <div id="cc-result" class="result"></div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  NormalizDB · Open-source on GitHub Pages · Database Theory Tools
+</footer>
+
+<script>
+// ─────────────────────────────────────────────
+// UTILITIES
+// ─────────────────────────────────────────────
+
+function parseFDs(text) {
+  const fds = [];
+  const lines = text.trim().split('\n');
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    const parts = line.split('->');
+    if (parts.length !== 2) throw new Error(`Invalid FD: "${line.trim()}" — use format: X -> Y`);
+    const lhs = parts[0].split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+    const rhs = parts[1].split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+    if (!lhs.length || !rhs.length) throw new Error(`Empty side in FD: "${line.trim()}"`);
+    fds.push({ lhs: new Set(lhs), rhs: new Set(rhs) });
+  }
+  return fds;
+}
+
+function parseAttrs(text) {
+  return new Set(text.split(',').map(s => s.trim().toUpperCase()).filter(Boolean));
+}
+
+function closure(attrs, fds) {
+  const result = new Set(attrs);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const fd of fds) {
+      if ([...fd.lhs].every(a => result.has(a))) {
+        for (const a of fd.rhs) {
+          if (!result.has(a)) { result.add(a); changed = true; }
+        }
+      }
+    }
+  }
+  return result;
+}
+
+function setEq(a, b) {
+  return a.size === b.size && [...a].every(x => b.has(x));
+}
+
+function setStr(s) {
+  return [...s].sort().join(', ');
+}
+
+function fdStr(fd) {
+  return `${setStr(fd.lhs)} → ${setStr(fd.rhs)}`;
+}
+
+function isSuperkey(attrs, allAttrs, fds) {
+  return setEq(closure(attrs, fds), allAttrs);
+}
+
+// ─────────────────────────────────────────────
+// TABS
+// ─────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ─────────────────────────────────────────────
+// CLEAR / EXAMPLES
+// ─────────────────────────────────────────────
+function clearPanel(id) {
+  if (id === 'bcnf') {
+    document.getElementById('bcnf-attrs').value = '';
+    document.getElementById('bcnf-key').value = '';
+    document.getElementById('bcnf-fds').value = '';
+    document.getElementById('bcnf-result').className = 'result';
+  } else if (id === '3nf') {
+    document.getElementById('nf3-attrs').value = '';
+    document.getElementById('nf3-key').value = '';
+    document.getElementById('nf3-fds').value = '';
+    document.getElementById('nf3-result').className = 'result';
+  } else {
+    document.getElementById('cc-fds').value = '';
+    document.getElementById('cc-result').className = 'result';
+  }
+}
+
+function loadExample(id) {
+  if (id === 'bcnf') {
+    document.getElementById('bcnf-attrs').value = 'A, B, C, D';
+    document.getElementById('bcnf-key').value = 'A, B';
+    document.getElementById('bcnf-fds').value = 'A, B -> C\nC -> D\nD -> A';
+  } else if (id === '3nf') {
+    document.getElementById('nf3-attrs').value = 'S, D, I, A, C';
+    document.getElementById('nf3-key').value = 'S, D';
+    document.getElementById('nf3-fds').value = 'S -> A\nD -> I\nS, D -> C';
+  } else {
+    document.getElementById('cc-fds').value = 'A -> B, C\nA, B -> C\nC -> A\nB -> C';
+  }
+}
+
+// ─────────────────────────────────────────────
+// BCNF DECOMPOSITION
+// ─────────────────────────────────────────────
+function computeBCNF() {
+  const res = document.getElementById('bcnf-result');
+  try {
+    const allAttrs = parseAttrs(document.getElementById('bcnf-attrs').value);
+    const keyAttrs = parseAttrs(document.getElementById('bcnf-key').value);
+    const fds = parseFDs(document.getElementById('bcnf-fds').value);
+
+    if (!allAttrs.size) throw new Error('Please enter relation attributes.');
+    if (!fds.length) throw new Error('Please enter at least one functional dependency.');
+
+    let steps = [];
+    let schemas = [new Set(allAttrs)];
+    let iteration = 0;
+
+    // iterative BCNF decomposition
+    let changed = true;
+    while (changed) {
+      changed = false;
+      iteration++;
+      const newSchemas = [];
+      for (const schema of schemas) {
+        let violated = null;
+        // find a violating FD
+        for (const fd of fds) {
+          const lhsInSchema = [...fd.lhs].every(a => schema.has(a));
+          if (!lhsInSchema) continue;
+          const rhsInSchema = [...fd.rhs].filter(a => schema.has(a));
+          if (!rhsInSchema.length) continue;
+          // check if LHS is superkey of schema
+          const cl = closure(fd.lhs, fds);
+          const isSuper = [...schema].every(a => cl.has(a));
+          if (!isSuper) { violated = { lhs: fd.lhs, rhs: new Set(rhsInSchema) }; break; }
+        }
+        if (violated) {
+          changed = true;
+          const cl = closure(violated.lhs, fds);
+          const r1 = new Set([...violated.lhs, ...[...cl].filter(a => schema.has(a))]);
+          const r2 = new Set([...violated.lhs, ...[...schema].filter(a => !r1.has(a) || violated.lhs.has(a))]);
+          // r2 = schema - (cl - lhs)
+          const diff = new Set([...cl].filter(a => schema.has(a) && !violated.lhs.has(a)));
+          const r2Fixed = new Set([...schema].filter(a => !diff.has(a)));
+          steps.push({
+            schema: setStr(schema),
+            fd: fdStr(violated),
+            r1: setStr(r1),
+            r2: setStr(r2Fixed)
+          });
+          newSchemas.push(r1, r2Fixed);
+        } else {
+          newSchemas.push(schema);
+        }
+      }
+      schemas = newSchemas;
+      if (iteration > 30) break; // safety
+    }
+
+    // build output HTML
+    let html = '<h3>BCNF Decomposition Result</h3>';
+
+    if (steps.length === 0) {
+      html += `<div class="result-section">
+        <div class="step-line">✓ The relation is <span class="hl-purple">already in BCNF</span>. No decomposition needed.</div>
+      </div>`;
+    } else {
+      html += `<div class="result-section"><div class="step-line">Decomposition steps:</div>`;
+      steps.forEach((s, i) => {
+        html += `<div class="step-line" style="margin-top:.75rem; padding:.75rem; background:rgba(124,106,247,.06); border-radius:4px; border-left:2px solid var(--accent)">
+          <div>Step ${i+1}: Violating FD in <span class="hl-purple">{ ${s.schema} }</span></div>
+          <div style="margin:.3rem 0">FD: <span class="hl-purple">${s.fd}</span> (LHS is not a superkey)</div>
+          <div>Decompose into:</div>
+          <div style="margin-top:.3rem"><span class="tag">R${2*i+1} = { ${s.r1} }</span></div>
+          <div><span class="tag">R${2*i+2} = { ${s.r2} }</span></div>
+        </div>`;
+      });
+      html += '</div>';
+    }
+
+    html += `<div class="result-section"><div class="step-line">Final BCNF Schemas:</div><div style="margin-top:.5rem">`;
+    schemas.forEach((s, i) => {
+      html += `<span class="tag">R${i+1} ( ${setStr(s)} )</span> `;
+    });
+    html += `</div></div>`;
+
+    // check key preservation
+    const keyInSchema = schemas.some(s => [...keyAttrs].every(a => s.has(a)));
+    html += `<div class="result-section">
+      <div class="step-line">Key <span class="hl-purple">{ ${setStr(keyAttrs)} }</span> preserved in decomposition: 
+        <span class="${keyInSchema ? 'hl-green' : 'hl-orange'}">${keyInSchema ? 'Yes ✓' : 'No — typical for BCNF'}</span>
+      </div>
+      <div class="step-line" style="margin-top:.4rem; color:var(--muted)">Note: BCNF guarantees lossless join but may not preserve all FDs.</div>
+    </div>`;
+
+    res.innerHTML = html;
+    res.className = 'result show';
+  } catch(e) {
+    res.innerHTML = `<div class="error-box">⚠ ${e.message}</div>`;
+    res.className = 'result show';
+  }
+}
+
+// ─────────────────────────────────────────────
+// 3NF SYNTHESIS
+// ─────────────────────────────────────────────
+function compute3NF() {
+  const res = document.getElementById('nf3-result');
+  try {
+    const allAttrs = parseAttrs(document.getElementById('nf3-attrs').value);
+    const keyAttrs = parseAttrs(document.getElementById('nf3-key').value);
+    const fds = parseFDs(document.getElementById('nf3-fds').value);
+
+    if (!allAttrs.size) throw new Error('Please enter relation attributes.');
+    if (!fds.length) throw new Error('Please enter at least one functional dependency.');
+
+    let html = '<h3>3NF Synthesis Result</h3>';
+
+    // Step 1: Compute canonical cover (simplified)
+    const Fc = computeCanonicalCoverRaw(fds, allAttrs);
+
+    html += `<div class="result-section">
+      <div class="step-line"><span class="hl-orange">Step 1:</span> Compute canonical cover Fc</div>
+      <div style="margin-top:.5rem">`;
+    Fc.forEach(fd => { html += `<div class="step-line" style="margin-left:1rem">— <span class="tag orange">${fdStr(fd)}</span></div>`; });
+    html += `</div></div>`;
+
+    // Step 2: Create a relation for each FD in Fc
+    const schemas = Fc.map(fd => new Set([...fd.lhs, ...fd.rhs]));
+
+    html += `<div class="result-section">
+      <div class="step-line"><span class="hl-orange">Step 2:</span> Create schema for each FD in Fc</div>
+      <div style="margin-top:.5rem">`;
+    schemas.forEach((s, i) => {
+      html += `<div class="step-line" style="margin-left:1rem">R${i+1} = <span class="tag orange">( ${setStr(s)} )</span> — from FD: ${fdStr(Fc[i])}</div>`;
+    });
+    html += '</div></div>';
+
+    // Step 3: Check if any schema contains candidate key
+    const hasKey = schemas.some(s => [...keyAttrs].every(a => s.has(a)));
+    let keySchemaAdded = false;
+    if (!hasKey) {
+      schemas.push(new Set(keyAttrs));
+      keySchemaAdded = true;
+    }
+
+    html += `<div class="result-section">
+      <div class="step-line"><span class="hl-orange">Step 3:</span> Ensure a schema contains a candidate key { ${setStr(keyAttrs)} }</div>
+      <div class="step-line" style="margin-left:1rem">${hasKey ? '✓ Key already present — no extra schema needed.' : `⊕ Key schema added: <span class="tag orange">( ${setStr(keyAttrs)} )</span>`}</div>
+    </div>`;
+
+    // Step 4: Remove redundant schemas
+    const finalSchemas = [];
+    for (let i = 0; i < schemas.length; i++) {
+      let dominated = false;
+      for (let j = 0; j < schemas.length; j++) {
+        if (i !== j && [...schemas[i]].every(a => schemas[j].has(a))) {
+          dominated = true; break;
+        }
+      }
+      if (!dominated) finalSchemas.push(schemas[i]);
+    }
+
+    html += `<div class="result-section">
+      <div class="step-line"><span class="hl-orange">Step 4:</span> Remove redundant schemas</div>
+    </div>`;
+
+    html += `<div class="result-section">
+      <div class="step-line">Final 3NF Schemas:</div>
+      <div style="margin-top:.5rem">`;
+    finalSchemas.forEach((s, i) => {
+      html += `<span class="tag orange">R${i+1} ( ${setStr(s)} )</span> `;
+    });
+    html += `</div></div>`;
+
+    html += `<div class="result-section">
+      <div class="step-line" style="color:var(--muted)">3NF guarantees both <span>lossless join</span> and <span>dependency preservation</span>.</div>
+    </div>`;
+
+    res.innerHTML = html;
+    res.className = 'result show';
+  } catch(e) {
+    res.innerHTML = `<div class="error-box">⚠ ${e.message}</div>`;
+    res.className = 'result show';
+  }
+}
+
+// ─────────────────────────────────────────────
+// CANONICAL COVER
+// ─────────────────────────────────────────────
+function computeCanonicalCoverRaw(fds, allAttrs) {
+  // Step 1: Split RHS to singletons
+  let F = [];
+  for (const fd of fds) {
+    for (const b of fd.rhs) {
+      F.push({ lhs: new Set(fd.lhs), rhs: new Set([b]) });
+    }
+  }
+
+  // Step 2: Remove extraneous attributes from LHS
+  let changed = true;
+  while (changed) {
+    changed = false;
+    const newF = [];
+    for (const fd of F) {
+      let newLhs = new Set(fd.lhs);
+      for (const a of fd.lhs) {
+        const tryLhs = new Set([...fd.lhs].filter(x => x !== a));
+        const tempF = F.filter(f => f !== fd);
+        tempF.push({ lhs: tryLhs, rhs: fd.rhs });
+        const cl = closure(tryLhs, tempF);
+        if ([...fd.rhs].every(b => cl.has(b))) {
+          newLhs = tryLhs;
+          changed = true;
+          break;
+        }
+      }
+      newF.push({ lhs: newLhs, rhs: fd.rhs });
+    }
+    F = newF;
+  }
+
+  // Step 3: Remove redundant FDs
+  let finalF = [...F];
+  for (let i = finalF.length - 1; i >= 0; i--) {
+    const without = finalF.filter((_, idx) => idx !== i);
+    const cl = closure(finalF[i].lhs, without);
+    if ([...finalF[i].rhs].every(b => cl.has(b))) {
+      finalF = without;
+    }
+  }
+
+  // Merge same-LHS FDs
+  const merged = new Map();
+  for (const fd of finalF) {
+    const key = setStr(fd.lhs);
+    if (!merged.has(key)) merged.set(key, { lhs: fd.lhs, rhs: new Set() });
+    for (const b of fd.rhs) merged.get(key).rhs.add(b);
+  }
+
+  return [...merged.values()];
+}
+
+function computeCC() {
+  const res = document.getElementById('cc-result');
+  try {
+    const fds = parseFDs(document.getElementById('cc-fds').value);
+    if (!fds.length) throw new Error('Please enter at least one functional dependency.');
+
+    let html = '<h3>Canonical Cover Result</h3>';
+
+    // Step 1: Split
+    let F = [];
+    for (const fd of fds) {
+      for (const b of fd.rhs) {
+        F.push({ lhs: new Set(fd.lhs), rhs: new Set([b]) });
+      }
+    }
+    html += `<div class="result-section">
+      <div class="step-line"><span class="hl-green">Step 1:</span> Split RHS into singletons</div>
+      <div style="margin-top:.5rem">`;
+    F.forEach(fd => { html += `<span class="tag green">${fdStr(fd)}</span> `; });
+    html += '</div></div>';
+
+    // Step 2: Remove extraneous LHS attributes
+    const removedLHS = [];
+    let changed = true;
+    while (changed) {
+      changed = false;
+      const newF = [];
+      for (const fd of F) {
+        let newLhs = new Set(fd.lhs);
+        for (const a of fd.lhs) {
+          const tryLhs = new Set([...fd.lhs].filter(x => x !== a));
+          if (!tryLhs.size) continue;
+          const tempF = F.filter(f => f !== fd);
+          tempF.push({ lhs: tryLhs, rhs: fd.rhs });
+          const cl = closure(tryLhs, tempF);
+          if ([...fd.rhs].every(b => cl.has(b))) {
+            removedLHS.push({ from: fdStr(fd), removed: a, newFd: `${setStr(tryLhs)} → ${setStr(fd.rhs)}` });
+            newLhs = tryLhs;
+            changed = true;
+            break;
+          }
+        }
+        newF.push({ lhs: newLhs, rhs: fd.rhs });
+      }
+      F = newF;
+    }
+
+    html += `<div class="result-section">
+      <div class="step-line"><span class="hl-green">Step 2:</span> Remove extraneous LHS attributes</div>`;
+    if (removedLHS.length === 0) {
+      html += `<div class="step-line" style="margin-left:1rem; margin-top:.4rem">No extraneous LHS attributes found.</div>`;
+    } else {
+      removedLHS.forEach(r => {
+        html += `<div class="step-line" style="margin-left:1rem; margin-top:.4rem">Removed <span class="tag red">${r.removed}</span> from ${r.from} → <span class="tag green">${r.newFd}</span></div>`;
+      });
+    }
+    html += '</div>';
+
+    // Step 3: Remove redundant FDs
+    const removedFDs = [];
+    let finalF = [...F];
+    for (let i = finalF.length - 1; i >= 0; i--) {
+      const without = finalF.filter((_, idx) => idx !== i);
+      const cl = closure(finalF[i].lhs, without);
+      if ([...finalF[i].rhs].every(b => cl.has(b))) {
+        removedFDs.push(fdStr(finalF[i]));
+        finalF = without;
+      }
+    }
+
+    html += `<div class="result-section">
+      <div class="step-line"><span class="hl-green">Step 3:</span> Remove redundant FDs</div>`;
+    if (removedFDs.length === 0) {
+      html += `<div class="step-line" style="margin-left:1rem; margin-top:.4rem">No redundant FDs found.</div>`;
+    } else {
+      removedFDs.forEach(fd => {
+        html += `<div class="step-line" style="margin-left:1rem; margin-top:.4rem">Removed: <span class="tag red">${fd}</span></div>`;
+      });
+    }
+    html += '</div>';
+
+    // Merge same-LHS
+    const merged = new Map();
+    for (const fd of finalF) {
+      const key = setStr(fd.lhs);
+      if (!merged.has(key)) merged.set(key, { lhs: fd.lhs, rhs: new Set() });
+      for (const b of fd.rhs) merged.get(key).rhs.add(b);
+    }
+    const result = [...merged.values()];
+
+    html += `<div class="result-section">
+      <div class="step-line"><span class="hl-green">Step 4:</span> Merge FDs with same LHS</div>
+    </div>`;
+
+    html += `<div class="result-section" style="background:rgba(106,247,194,.06); padding:1rem; border-radius:4px; border-left:2px solid var(--accent3)">
+      <div class="step-line">Canonical Cover F<sub>c</sub>:</div>
+      <div style="margin-top:.5rem">`;
+    result.forEach(fd => { html += `<span class="tag green">${fdStr(fd)}</span> `; });
+    html += '</div></div>';
+
+    res.innerHTML = html;
+    res.className = 'result show';
+  } catch(e) {
+    res.innerHTML = `<div class="error-box">⚠ ${e.message}</div>`;
+    res.className = 'result show';
+  }
+}
+</script>
+</body>
+</html>
