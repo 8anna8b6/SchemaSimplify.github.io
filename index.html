@@ -25,7 +25,7 @@
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: var(--sans);
+   font-family: var(--font-body);
     min-height: 100vh;
     overflow-x: hidden;
   }
@@ -57,7 +57,7 @@
   }
   .logo-chip {
     display: inline-block;
-    font-family: var(--mono);
+    font-family: var(--font-body);
     font-size: .68rem;
     letter-spacing: .3em;
     color: var(--accent);
@@ -81,7 +81,7 @@
   header p {
     margin-top: .9rem;
     color: var(--muted);
-    font-family: var(--mono);
+    font-family: var(--font-body);
     font-size: .75rem;
     letter-spacing: .08em;
   }
@@ -99,7 +99,7 @@
     background: var(--card);
     border: 1px solid var(--border);
     color: var(--muted);
-    font-family: var(--mono);
+    font-family: var(--font-body);
     font-size: .73rem;
     letter-spacing: .12em;
     text-transform: uppercase;
@@ -166,7 +166,7 @@
   .card[data-theme="purple"] .card-icon { background: rgba(232,121,249,.15); border-color: rgba(232,121,249,.3); }
   .card[data-theme="rose"]   .card-icon { background: rgba(251,113,133,.15); border-color: rgba(251,113,133,.3); }
   .card-label {
-    font-size: .62rem; font-family: var(--mono);
+    font-size: .62rem; font-family: var(--font-body);
     letter-spacing: .2em; text-transform: uppercase;
     color: var(--accent);
   }
@@ -177,7 +177,7 @@
   /* FORM */
   label {
     display: block;
-    font-size: .68rem; font-family: var(--mono);
+    font-size: .68rem; font-family: var(--font-body);
     letter-spacing: .12em; color: var(--muted);
     margin-bottom: .45rem; text-transform: uppercase;
   }
@@ -187,7 +187,7 @@
     border: 1px solid var(--border);
     border-radius: 6px;
     color: var(--text);
-    font-family: var(--mono);
+    font-family: var(--font-body);
     font-size: .85rem;
     padding: .85rem 1.1rem;
     outline: none;
@@ -200,11 +200,11 @@
   .card[data-theme="rose"] input:focus,
   .card[data-theme="rose"] textarea:focus   { border-color: var(--accent3); box-shadow: 0 0 0 3px rgba(251,113,133,.15); }
   .field { margin-bottom: 1.4rem; }
-  .hint { font-size: .65rem; font-family: var(--mono); color: var(--muted); margin-top: .4rem; }
+  .hint { font-size: .65rem; font-family: var(--font-body); color: var(--muted); margin-top: .4rem; }
 
   /* BUTTONS */
   .btn {
-    font-family: var(--mono); font-size: .75rem;
+    font-family: var(--font-body);font-size: .75rem;
     letter-spacing: .1em; text-transform: uppercase;
     padding: .8rem 2rem; border: none; border-radius: 6px;
     cursor: pointer; transition: all .2s; font-weight: 700;
@@ -227,13 +227,13 @@
     border-radius: 8px;
     padding: 2rem 2.5rem;
     margin-top: 2rem;
-    font-family: var(--mono);
+    font-family: var(--font-body);
     font-size: .82rem;
     line-height: 1.9;
   }
   .result.show { display: block; animation: fadeUp .3s ease; }
   .result-header {
-    font-family: var(--sans); font-size: .6rem;
+    font-family: var(--font-body); font-size: .6rem;
     letter-spacing: .25em; text-transform: uppercase;
     color: var(--muted); margin-bottom: 1.5rem;
     border-bottom: 1px solid var(--border); padding-bottom: .75rem;
@@ -252,7 +252,7 @@
     background: rgba(244,114,182,.12); color: var(--accent);
     border: 1px solid rgba(244,114,182,.3);
     border-radius: 4px; padding: .18rem .6rem;
-    font-size: .75rem; margin: .18rem .1rem; font-family: var(--mono);
+    font-size: .75rem; margin: .18rem .1rem; font-family: var(--font-body);
   }
   .tag.purple { background: rgba(232,121,249,.12); color: var(--accent2); border-color: rgba(232,121,249,.3); }
   .tag.rose   { background: rgba(251,113,133,.12); color: var(--accent3); border-color: rgba(251,113,133,.3); }
@@ -293,24 +293,24 @@
   .error-box {
     background: rgba(251,113,133,.1); border: 1px solid rgba(251,113,133,.35);
     border-radius: 6px; color: #fb7185; padding: .9rem 1.1rem;
-    font-size: .78rem; margin-top: 1rem; font-family: var(--mono);
+    font-size: .78rem; margin-top: 1rem; font-family: var(--font-body);
   }
   .success-note {
     background: rgba(34,197,94,.08); border: 1px solid rgba(34,197,94,.2);
     border-radius: 6px; color: #86efac; padding: .75rem 1.1rem;
-    font-size: .78rem; margin-top: .75rem; font-family: var(--mono);
+    font-size: .78rem; margin-top: .75rem; font-family: var(--font-body);
   }
 
   .pills { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: 1.75rem; }
   .pill {
     background: rgba(255,255,255,.04); border: 1px solid var(--border);
     border-radius: 20px; padding: .28rem .85rem;
-    font-size: .65rem; font-family: var(--mono); color: var(--muted);
+    font-size: .65rem;font-family: var(--font-body); color: var(--muted);
   }
 
   footer {
     text-align: center; padding: 2rem;
-    font-family: var(--mono); font-size: .65rem; color: var(--muted);
+    font-family: var(--font-body); font-size: .65rem; color: var(--muted);
     border-top: 1px solid var(--border); position: relative; z-index: 10;
   }
 </style>
@@ -785,7 +785,7 @@ function computeCC() {
     html += `<div class="result-section"><div class="final-box rose">
       <div class="final-box-title">✦ Canonical Cover Fc</div>`;
     Fc.forEach(([l,r]) => {
-      html += `<div style="margin-bottom:.4rem;font-family:var(--mono)">
+      html += `<div style="margin-bottom:.4rem;font-family: var(--font-body);">
         <span class="tag rose">{ ${setStr(l)} }</span>&nbsp;→&nbsp;<span class="tag rose">{ ${setStr(r)} }</span>
       </div>`;
     });
