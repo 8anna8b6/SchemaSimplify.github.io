@@ -2,6 +2,9 @@
 
 SchemaSimplify is a lightweight web tool for practicing and visualizing database normalization algorithms.
 
+## Live Demo
+👉 [Open SchemaSimplify](https://8anna8b6.github.io/SchemaSimplify.github.io/)
+
 ## Features
 
 * BCNF Decomposition (lossless)
